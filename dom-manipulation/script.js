@@ -1,8 +1,8 @@
-// ======================================================
-// Dynamic Quote Generator with Web Storage + Server Sync
-// ======================================================
+// ================================================
+// Dynamic Quote Generator with Server Sync (Final)
+// ================================================
 
-// Default quotes
+// Default local quotes
 let quotes = [
   { text: "The best way to predict the future is to invent it.", category: "Motivation" },
   { text: "Simplicity is the soul of efficiency.", category: "Productivity" },
@@ -10,9 +10,10 @@ let quotes = [
 ];
 
 const notification = document.getElementById("notification");
+const SERVER_URL = "https://jsonplaceholder.typicode.com/posts"; // mock API
 
 // =============================
-// Local Storage Helpers
+// Local Storage Utilities
 // =============================
 
 function saveQuotes() {
@@ -25,7 +26,7 @@ function loadQuotes() {
 }
 
 // =============================
-// Populate Categories & Filter
+// Category Filter Functions
 // =============================
 
 function populateCategories() {
@@ -72,14 +73,14 @@ function filterQuotes() {
 }
 
 // =============================
-// Add New Quote
+// Add New Quote & Post to Server
 // =============================
 
 function addQuote() {
   const text = document.getElementById("newQuoteText").value.trim();
   const cat = document.getElementById("newQuoteCategory").value.trim();
 
-  if (!text || !cat) return alert("Please enter both quote and category.");
+  if (!text || !cat) return alert("Please enter both fields.");
 
   const newQuote = { text, category: cat };
   quotes.push(newQuote);
@@ -88,14 +89,77 @@ function addQuote() {
   filterQuotes();
   document.getElementById("newQuoteText").value = "";
   document.getElementById("newQuoteCategory").value = "";
-  alert("New quote added!");
 
-  // Simulate sending to server
-  syncQuoteToServer(newQuote);
+  // Post to mock server
+  postQuoteToServer(newQuote);
+  alert("New quote added and synced!");
 }
 
 // =============================
-// JSON Import / Export
+// Step 1: Fetch from Server (mock)
+// =============================
+
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch(SERVER_URL);
+    const data = await response.json();
+    const serverQuotes = data.slice(0, 5).map(item => ({
+      text: item.title,
+      category: "Server",
+    }));
+    resolveConflicts(serverQuotes);
+  } catch (err) {
+    console.error("Error fetching server data:", err);
+  }
+}
+
+// =============================
+// Step 2: Post to Server (mock)
+// =============================
+
+async function postQuoteToServer(quote) {
+  try {
+    await fetch(SERVER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(quote),
+    });
+    console.log("Quote posted to server:", quote.text);
+  } catch (err) {
+    console.error("Error posting quote:", err);
+  }
+}
+
+// =============================
+// Step 3: Sync & Conflict Resolution
+// =============================
+
+function syncQuotes() {
+  // periodically called to refresh data
+  fetchQuotesFromServer();
+}
+
+function resolveConflicts(serverQuotes) {
+  let newFromServer = serverQuotes.filter(
+    s => !quotes.some(q => q.text === s.text)
+  );
+
+  if (newFromServer.length > 0) {
+    quotes.push(...newFromServer);
+    saveQuotes();
+    populateCategories();
+    showNotification(`${newFromServer.length} new quote(s) synced from server.`);
+  }
+}
+
+function showNotification(msg) {
+  notification.style.display = "block";
+  notification.textContent = msg;
+  setTimeout(() => (notification.style.display = "none"), 4000);
+}
+
+// =============================
+// JSON Import / Export (unchanged)
 // =============================
 
 function exportToJsonFile() {
@@ -130,69 +194,6 @@ function importFromJsonFile(event) {
 }
 
 // =============================
-// Step 1–2: Server Sync Simulation
-// =============================
-
-// We'll simulate a remote server using JSONPlaceholder posts
-const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
-
-// Fetch server quotes periodically (simulation)
-async function fetchServerQuotes() {
-  try {
-    const response = await fetch(SERVER_URL);
-    const data = await response.json();
-
-    // Convert placeholder data into quote objects
-    const serverQuotes = data.slice(0, 5).map(d => ({
-      text: d.title,
-      category: "Server",
-    }));
-
-    resolveConflicts(serverQuotes);
-  } catch (err) {
-    console.error("Error fetching server quotes:", err);
-  }
-}
-
-// Push new quote to the server (simulated)
-async function syncQuoteToServer(quote) {
-  try {
-    await fetch(SERVER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(quote),
-    });
-    console.log("Quote synced to server:", quote.text);
-  } catch (err) {
-    console.error("Error syncing quote:", err);
-  }
-}
-
-// =============================
-// Step 3: Conflict Resolution
-// =============================
-
-function resolveConflicts(serverQuotes) {
-  // Identify any quotes that aren't in local storage yet
-  let newOnServer = serverQuotes.filter(
-    s => !quotes.some(q => q.text === s.text)
-  );
-
-  if (newOnServer.length > 0) {
-    quotes.push(...newOnServer);
-    saveQuotes();
-    populateCategories();
-    showNotification(`${newOnServer.length} new quote(s) synced from server.`);
-  }
-}
-
-function showNotification(message) {
-  notification.style.display = "block";
-  notification.textContent = message;
-  setTimeout(() => (notification.style.display = "none"), 4000);
-}
-
-// =============================
 // Initialization
 // =============================
 
@@ -206,6 +207,6 @@ document.getElementById("exportJson").addEventListener("click", exportToJsonFile
 document.getElementById("importFile").addEventListener("change", importFromJsonFile);
 document.getElementById("categoryFilter").addEventListener("change", filterQuotes);
 
-// Periodic sync with "server"
-setInterval(fetchServerQuotes, 20000); // every 20 s
+// Step 2: Periodic sync (every 20s)
+setInterval(syncQuotes, 20000);
 
