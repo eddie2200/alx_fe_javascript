@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dynamic Quote Generator</title>
+  <title>Dynamic Quote Generator with Category Filter</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -33,7 +33,7 @@
     button:hover {
       background-color: #0056b3;
     }
-    input {
+    input, select {
       margin: 5px;
       padding: 8px;
       border-radius: 4px;
@@ -48,14 +48,12 @@
   <div id="quoteDisplay"></div>
 
   <!-- Show Random Quote -->
-  <button id="newQuote">Show New Quote</button>
+  <button id="newQuote">Show Random Quote</button>
 
   <!-- Category Filter -->
   <div style="margin-top: 20px;">
     <label for="categoryFilter"><strong>Filter by Category:</strong></label>
-    <select id="categoryFilter">
-      <option value="all">All</option>
-    </select>
+    <select id="categoryFilter"></select>
   </div>
 
   <!-- Add New Quote -->
@@ -65,7 +63,7 @@
     <button id="addQuote">Add Quote</button>
   </div>
 
-  <!-- Import / Export Section -->
+  <!-- JSON Import / Export -->
   <div style="margin-top: 20px;">
     <button id="exportJson">Export Quotes (JSON)</button>
     <input type="file" id="importFile" accept=".json" style="margin-left:10px;" />
